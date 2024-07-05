@@ -63,17 +63,6 @@ MISCELLANEOUS
 - Language	:	C++ (can easily be converted into other languages)
 */
 
-/*
-TODO
-#version
-#include done
-#define done
-#ifndef
-#ifdef
-#else
-#endif
-*/
-
 class Shadinclude
 {
 private:
@@ -118,12 +107,16 @@ public:
 			ifndefIdentifier += ' ';
 		}
 
+		defState.clear();
+		defState.push_back(true);
 		std::string fullSourceCode = handleFile(path);
 
 		return fullSourceCode;
 	}
 
 private:
+std::vector<bool> defState;
+
 	static void getFilePath(const std::string & fullPath, std::string & pathWithoutFileName)
 	{
 		// Remove the file name and store the path to this folder
@@ -135,6 +128,8 @@ private:
 	std::string handleFile(std::string path)
 	{
 		static bool isRecursiveCall = false;
+
+		int lineIndex = 0;
 
 		std::string fullSourceCode = "";
 		std::ifstream file(path);
@@ -148,8 +143,41 @@ private:
 		std::string lineBuffer;
 		while (std::getline(file, lineBuffer))
 		{
+			lineIndex++;
+			if (lineBuffer.find(elseIdentifier) != lineBuffer.npos)
+			{
+				if (defState.size() > 1)
+				{
+					defState[defState.size() - 1] = !defState.back();
+				}
+				else
+				{
+					std::cerr << "Unpaired else found at: " << path << " Line: " << lineIndex << '\n' << std::endl;
+				}
+				// Do not add this line to the shader source code, as the include
+				// path would generate a compilation issue in the final source code
+				continue;
+			}
+			else if (lineBuffer.find(endifIdentifier) != lineBuffer.npos)
+			{
+				if (defState.size() > 1)
+				{
+					defState.pop_back();
+				}
+				else
+				{
+					std::cerr << "Unpaired endif found at: " << path << " Line: " << lineIndex << '\n' << std::endl;
+				}
+				// Do not add this line to the shader source code, as the include
+				// path would generate a compilation issue in the final source code
+				continue;
+			}
+			else if (!defState.back())
+			{
+				continue;
+			}
 			// Look for the new shader include identifier
-			if (lineBuffer.find(includeIdentifier) != lineBuffer.npos)
+			else if (lineBuffer.find(includeIdentifier) != lineBuffer.npos)
 			{
 				// Remove the include identifier, this will cause the path to remain
 				lineBuffer.erase(0, includeIdentifier.size());
@@ -196,24 +224,38 @@ private:
 			}
 			else if (lineBuffer.find(ifdefIdentifier) != lineBuffer.npos)
 			{
+				int i = 0;
+				while ((i < definitions.size()) && (lineBuffer.find(definitions[i].identifier) == lineBuffer.npos))
+				{
+					i++;
+				}
+				if (i < definitions.size())
+				{
+					defState.push_back(true);
+				}
+				else
+				{
+					defState.push_back(false);
+				}
 				// Do not add this line to the shader source code, as the include
 				// path would generate a compilation issue in the final source code
 				continue;
 			}
 			else if (lineBuffer.find(ifndefIdentifier) != lineBuffer.npos)
 			{
-				// Do not add this line to the shader source code, as the include
-				// path would generate a compilation issue in the final source code
-				continue;
-			}
-			else if (lineBuffer.find(elseIdentifier) != lineBuffer.npos)
-			{
-				// Do not add this line to the shader source code, as the include
-				// path would generate a compilation issue in the final source code
-				continue;
-			}
-			else if (lineBuffer.find(endifIdentifier) != lineBuffer.npos)
-			{
+				int i = 0;
+				while ((i < definitions.size()) && (lineBuffer.find(definitions[i].identifier) == lineBuffer.npos))
+				{
+					i++;
+				}
+				if (i < definitions.size())
+				{
+					defState.push_back(false);
+				}
+				else
+				{
+					defState.push_back(true);
+				}
 				// Do not add this line to the shader source code, as the include
 				// path would generate a compilation issue in the final source code
 				continue;
@@ -241,8 +283,6 @@ private:
 			fullSourceCode += '\0';
 
 		file.close();
-
-		//std::cout << fullSourceCode << "\n\n-=-=-=-\n\n";
 
 		return fullSourceCode;
 	}
