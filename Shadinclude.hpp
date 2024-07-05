@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include<vector>
 
 //	===========
 //	Shadinclude
@@ -62,13 +63,77 @@ MISCELLANEOUS
 - Language	:	C++ (can easily be converted into other languages)
 */
 
+/*
+TODO
+#version
+#include done
+#define done
+#ifndef
+#ifdef
+#else
+#endif
+*/
+
 class Shadinclude
 {
-public:
-	// Return the source code of the complete shader
-	static std::string load(std::string path, std::string includeIndentifier = "#include")
+private:
+	struct Definition
 	{
-		includeIndentifier += ' ';
+		std::string identifier;
+		std::string content;
+	};
+
+public:
+	std::string includeIdentifier = "#include";
+	std::string defineIdentifier = "#define";
+	std::string ifdefIdentifier = "#ifdef";
+	std::string ifndefIdentifier = "#ifndef";
+	std::string elseIdentifier = "#else";
+	std::string endifIdentifier = "#endif";
+
+	std::vector<Definition> definitions;
+
+	Shadinclude()
+	{
+
+	}
+
+	// Return the source code of the complete shader
+	std::string load(std::string path)
+	{
+		if (includeIdentifier[includeIdentifier.size() - 1] != ' ')
+		{
+			includeIdentifier += ' ';
+		}
+		if (defineIdentifier[defineIdentifier.size() - 1] != ' ')
+		{
+			defineIdentifier += ' ';
+		}
+		if (ifdefIdentifier[ifdefIdentifier.size() - 1] != ' ')
+		{
+			ifdefIdentifier += ' ';
+		}
+		if (ifndefIdentifier[ifndefIdentifier.size() - 1] != ' ')
+		{
+			ifndefIdentifier += ' ';
+		}
+
+		std::string fullSourceCode = handleFile(path);
+
+		return fullSourceCode;
+	}
+
+private:
+	static void getFilePath(const std::string & fullPath, std::string & pathWithoutFileName)
+	{
+		// Remove the file name and store the path to this folder
+		size_t found = fullPath.find_last_of("/\\");
+		pathWithoutFileName = fullPath.substr(0, found + 1);
+	}
+
+	// Return the source code of the complete shader
+	std::string handleFile(std::string path)
+	{
 		static bool isRecursiveCall = false;
 
 		std::string fullSourceCode = "";
@@ -84,10 +149,10 @@ public:
 		while (std::getline(file, lineBuffer))
 		{
 			// Look for the new shader include identifier
-			if (lineBuffer.find(includeIndentifier) != lineBuffer.npos)
+			if (lineBuffer.find(includeIdentifier) != lineBuffer.npos)
 			{
 				// Remove the include identifier, this will cause the path to remain
-				lineBuffer.erase(0, includeIndentifier.size());
+				lineBuffer.erase(0, includeIdentifier.size());
 
 				// Remove quotation marks from the include-string, in case there are any
 				auto lineBufferQuotationMarkPositions = std::remove(lineBuffer.begin(), lineBuffer.end(), '\"');
@@ -104,11 +169,67 @@ public:
 				// By using recursion, the new include file can be extracted
 				// and inserted at this location in the shader source code
 				isRecursiveCall = true;
-				fullSourceCode += load(lineBuffer);
+				fullSourceCode += handleFile(lineBuffer);
 
 				// Do not add this line to the shader source code, as the include
 				// path would generate a compilation issue in the final source code
 				continue;
+			}
+			else if (lineBuffer.find(defineIdentifier) != lineBuffer.npos)
+			{
+				// Remove the define identifier, this will cause the value to remain
+				lineBuffer.erase(0, defineIdentifier.size());
+
+				size_t space_pos = lineBuffer.find(' ');
+				if (space_pos != lineBuffer.npos)
+				{
+					definitions.push_back(Definition{ lineBuffer.substr(0, space_pos), lineBuffer.substr(space_pos + 1, lineBuffer.size() - 1) });
+				}
+				else
+				{
+					definitions.push_back(Definition{ lineBuffer.substr(0, lineBuffer.size()), "" });
+				}
+
+				// Do not add this line to the shader source code, as the include
+				// path would generate a compilation issue in the final source code
+				continue;
+			}
+			else if (lineBuffer.find(ifdefIdentifier) != lineBuffer.npos)
+			{
+				// Do not add this line to the shader source code, as the include
+				// path would generate a compilation issue in the final source code
+				continue;
+			}
+			else if (lineBuffer.find(ifndefIdentifier) != lineBuffer.npos)
+			{
+				// Do not add this line to the shader source code, as the include
+				// path would generate a compilation issue in the final source code
+				continue;
+			}
+			else if (lineBuffer.find(elseIdentifier) != lineBuffer.npos)
+			{
+				// Do not add this line to the shader source code, as the include
+				// path would generate a compilation issue in the final source code
+				continue;
+			}
+			else if (lineBuffer.find(endifIdentifier) != lineBuffer.npos)
+			{
+				// Do not add this line to the shader source code, as the include
+				// path would generate a compilation issue in the final source code
+				continue;
+			}
+			else
+			{
+				int i = 0;
+				while ((i < definitions.size()) && (lineBuffer.find(definitions[i].identifier) == lineBuffer.npos))
+				{
+					i++;
+				}
+				if (i < definitions.size())
+				{
+					size_t identifier_pos = lineBuffer.find(definitions[i].identifier);
+					lineBuffer.replace(identifier_pos, definitions[i].identifier.size(), definitions[i].content);
+				}
 			}
 
 			fullSourceCode += lineBuffer + '\n';
@@ -121,14 +242,8 @@ public:
 
 		file.close();
 
-		return fullSourceCode;
-	}
+		//std::cout << fullSourceCode << "\n\n-=-=-=-\n\n";
 
-private:
-	static void getFilePath(const std::string & fullPath, std::string & pathWithoutFileName)
-	{
-		// Remove the file name and store the path to this folder
-		size_t found = fullPath.find_last_of("/\\");
-		pathWithoutFileName = fullPath.substr(0, found + 1);
+		return fullSourceCode;
 	}
 };
