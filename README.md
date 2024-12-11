@@ -1,11 +1,11 @@
-# GLSL Shader Includes
-A utility class which allows the end user to make use of the include statement in a shader file.
+## Acknowledgments
+This project is based on [GLSL-Shader-Includes](https://github.com/tntmeijs/GLSL-Shader-Includes), licensed under the MIT License.
+
+# GLSL Includes Expanded
+A utility class which allows the end user to make use of statements such as include in a shader file.
 This is a C++ class but any programmer that has basic knowledge of his / her programming language of choice, should be able to quickly convert the code to another language within a couple minutes. It is that simple.
 
-### Introduction
-The sole purpose of this class is to load a file and extract the text that is in it. In theory, this class could be used for a variety of text-processing purposes, but it was initially designed to be used to load shader source code for GLSL, as it does not have a built-in function that lets you include another source files easily.
-
-### Using this class
+## Using this class
 Since the entire class is a static class, you only have to add this to to your project:
 
 ```cpp
@@ -15,87 +15,46 @@ Since the entire class is a static class, you only have to add this to to your p
 std::string shaderSource = Shadinclude::load("./path/to/shader.extension", "customKeyword");
 ```
 
-This will (recursively) extract the source code from the first shader file.
-
 Now, you might be wondering, what is the point of using your code for something so trivial as to loading a file and calling the "std::getline()" function on it?
 
 Well, besides loading the shader source code from a single file, the loader also supports custom keywords that allow you to include external files inside your shader source code! Since all of this loading is still fairly trivial but cumbersome to write over and over again, it has been uploaded to this repository for you to use.
 
-### Example
-*Vertex shader [./resources/shaders/basic.vs]*
-```glsl
-#version 330 core
-layout (location = 0) in vec3 position;
+## Supported keywords
 
-// Include other files
-#include include/functions.incl
-#include include/uniforms.incl
+### Include
 
-void main()
-{
-    position += doFancyCalculationA() * offsetA;
-    position += doFancyCalculationB() * offsetB;
-    position += doFancyCalculationC() * offsetC;
-
-    gl_Position = vec4(position, 1.0);
-}
+```cpp
+#include "../Libraries/lib/lygia/generative/random.glsl"
 ```
 
-*Utility functions [./resources/shaders/include/functions.incl]*
-```glsl
-vec3 doFancyCalculationA()
-{
-    return vec3(1.0, 0.0, 1.0);
-}
+This will (recursively) extract the source code from the shader file.
 
-vec3 doFancyCalculationB()
-{
-    return vec3(0.0, 1.0, 0.0);
-}
+### Define
 
-vec3 doFancyCalculationC()
-{
-    return vec3(0.0, 0.0, 1.0);
-}
+```cpp
+#define RANDOM_SINLESS
 ```
 
-*Uniforms [./resources/shaders/include/uniforms.incl]*
-```glsl
-uniform vec3 offsetA;
-uniform vec3 offsetB;
-uniform vec3 offsetC;
+This is defines a macro for [ifdef and ifndef](ifdef-ifndef-else-and-endif) and does nothing else.
+
+```cpp
+#define QTR_PI 0.78539816339
 ```
 
-*Result*
-```glsl
-#version 330 core
-layout (location = 0) in vec3 position;
+This is defines a macro for [ifdef and ifndef](ifdef-ifndef-else-and-endif). Also, all 'QTR_PI' strings are replaced by '0.78539816339'
 
-vec3 doFancyCalculationA()
-{
-    return vec3(1.0, 0.0, 1.0);
-}
+### Ifdef, Ifndef, Else and Endif
 
-vec3 doFancyCalculationB()
-{
-    return vec3(0.0, 1.0, 0.0);
-}
-
-vec3 doFancyCalculationC()
-{
-    return vec3(0.0, 0.0, 1.0);
-}
-
-uniform vec3 offsetA;
-uniform vec3 offsetB;
-uniform vec3 offsetC;
-
-void main()
-{
-    position += doFancyCalculationA() * offsetA;
-    position += doFancyCalculationB() * offsetB;
-    position += doFancyCalculationC() * offsetC;
-
-    gl_Position = vec4(position, 1.0);
-}
+```cpp
+#ifndef RANDOM_SCALE
+    #ifdef RANDOM_HIGHER_RANGE
+        #define RANDOM_SCALE vec4(.1031, .1030, .0973, .1099)
+    #else
+        #define RANDOM_SCALE vec4(443.897, 441.423, .0973, .1099)
+    #endif
+#endif
 ```
+
+This will check if 'RANDOM_SCALE' is defined. If not, it checks whether 'RANDOM_HIGHER_RANGE' is defined. If this is true, 'RANDOM_SCALE' is defined as 'vec4(.1031, .1030, .0973, .1099)'. If this is false, 'RANDOM_SCALE' is defined as 'vec4(443.897, 441.423, .0973, .1099)'.
+
+Not every #ifdef or #ifndef have to have an #else, but they have to be closed by an #endif.
