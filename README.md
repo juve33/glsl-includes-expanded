@@ -35,13 +35,13 @@ This will (recursively) extract the source code from the shader file.
 #define RANDOM_SINLESS
 ```
 
-This is defines a macro for [ifdef and ifndef](ifdef-ifndef-else-and-endif) and does nothing else.
+This is defines a macro for [ifdef and ifndef](#ifdef-ifndef-else-and-endif) and does nothing else.
 
 ```cpp
 #define QTR_PI 0.78539816339
 ```
 
-This is defines a macro for [ifdef and ifndef](ifdef-ifndef-else-and-endif). Also, all 'QTR_PI' strings are replaced by '0.78539816339'
+This is defines a macro for [ifdef and ifndef](#ifdef-ifndef-else-and-endif). Also, all 'QTR_PI' strings are replaced by '0.78539816339'
 
 ### Ifdef, Ifndef, Else and Endif
 
